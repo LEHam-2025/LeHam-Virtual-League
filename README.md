@@ -1,9 +1,15 @@
 This should be fairly simple.
 
-The first file, 'movement', contains movement functions
-The second file, 'sensing', contains sensing functions
-The third file, 'logic', contains the algorithm functions
-The final one, 'robot.py', is the actual final file.
+-The first file, 'movement', contains movement functions
+
+-The second file, 'sensing', contains sensing functions
+
+-The third file, 'logic', contains the algorithm functions
+
+-The final file, 'robot.py', is the actual final file.
+
+(The 'omni-dir' file is for omni-directional movement. I don't expect us to use it, 
+but I made it because I was bored and had 10 minutes. Feel free to work on it if you want)
 
 Once the other files are done, we should be able to simply import * from logic
 and run a 'main' function. Therefore, it is imperative that each module is independent, to avoid complications
