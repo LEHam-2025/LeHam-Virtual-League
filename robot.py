@@ -1,7 +1,5 @@
+'''This is the final file. We should only need to import from logic'''
 
+from logic import *
 
-from sr.robot3 import *
-from movement import *
-
-
-drive(-2)
+main() #This should be the complete function inside the logic module
