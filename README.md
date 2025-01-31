@@ -11,6 +11,7 @@ This should be fairly simple.
 To ensure proper decomposition, these files will import from each other as such:
 
 sensing -> movement -> logic -> robot
+
 (where the file to the right of the arrow imports from the file to the left of it)
 
 
