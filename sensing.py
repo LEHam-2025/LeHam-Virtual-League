@@ -37,7 +37,7 @@ def set_cam(cam):
     global camera
     camera = cam
 
-def get_angle(markerID):
+def get_angle(markerID, type = 'y'):
     '''Returns the yaw angle of the
     first marker spotted that matches the inputted ID.
     Returns 10 if the marker is not seen'''
@@ -45,7 +45,10 @@ def get_angle(markerID):
 
     for marker in markers:
         if marker.id == markerID:
-            return marker.orientation.yaw
+            if type == 'y':
+                return marker.orientation.yaw
+            else:
+                return marker.position.horizontal_angle
 
     return 10
 

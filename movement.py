@@ -24,8 +24,8 @@ set_cam(r.camera)
 #Coefficients stored as constants to allow measurement of movement in helpful units
 #These may not be exactly right, so feel free to change them
 #The move constant is an arbitrary value, but the turn constant should allow turns to be measured in degrees
-MOVE_CONST = 0.924
-TURN_CONST = 0.018
+MOVE_CONST = 1
+TURN_CONST = 0.0023
 
 def drive(distance, rest=0.1):
     '''
@@ -35,11 +35,11 @@ def drive(distance, rest=0.1):
     '''
 
     if distance >= 0:
-        motors[0].power = 0.15
-        motors[1].power = 0.15
+        motors[0].power = 0.2
+        motors[1].power = 0.2
     else:
-        motors[0].power = -0.15
-        motors[1].power = -0.15
+        motors[0].power = -0.2
+        motors[1].power = -0.2
         
     r.sleep(abs(distance)*MOVE_CONST)
     
@@ -61,12 +61,12 @@ def turn(angle, unit = 'd'):
         angle = degrees(angle)
     if angle < 0: #Turn the other way
         angle = abs(angle)
-        motors[0].power = -0.075 #For some reason backwards is
-        motors[1].power = 0.15   #about double the power of forwards
+        motors[0].power = -1 #For some reason backwards is
+        motors[1].power = 1   #about double the power of forwards
         r.sleep(angle*TURN_CONST)
     else:
-        motors[1].power = -0.075
-        motors[0].power = 0.15
+        motors[1].power = -1
+        motors[0].power = 1
         r.sleep(angle*TURN_CONST)
     motors[0].power = 0
     motors[1].power = 0
@@ -118,19 +118,19 @@ def arm_move(new_pos):
     servos[0].position = new_pos
     r.sleep(0.1)
 
-def align(marker, accuracy = 0.02):
+def align(marker, accuracy = 0.02, type = 'y'):
     '''
     Aligns the robot wth the marker of inputted ID, 
     to the accuracy of the inputted angle (in radians).
     If no accuracy is given, it defaults to 0.02 (~1 degrees)
     '''
 
-    while abs(get_angle(marker)) > accuracy:
-        print(get_angle(marker)) #For testing
+    while abs(get_angle(marker, type)) > accuracy:
+        print(get_angle(marker, type)) #For testing
         if get_angle(marker) == 10: #If not seen, turn 30 degrees
-            turn(30)
+            turn(15)
         else:
-            turn((0.7*(get_angle(marker))), 'r') #Since get_angle returns a radians value
+            turn((0.4*(get_angle(marker, type))), 'r') #Since get_angle returns a radians value
     r.sleep(0.1)
 
 def drive_towards(marker, dist_from = 10):
@@ -144,14 +144,14 @@ def drive_towards(marker, dist_from = 10):
         print(get_angle(marker))
         if get_angle(marker) > 0.02: #If misaligned
             print('align')
-            align(marker)
+            align(marker, 0.005, 'h')
         
         dist_remain = get_distance(marker)
-        dis = (dist_remain - dist_from)/500
+        dis = (dist_remain - dist_from)/250
         print(f'dis = {dis}')
         drive(dis)
         
-        if (dist_remain - (500*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
+        if (dist_remain - (250*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
             stop = True
 
 def search_any():
