@@ -3,7 +3,7 @@ This is being worked on.
 Imports from the sensing library 
 and is imported by the logic library.
 
-This library also imports sr.robot3 and math for calculations
+This library also imports from sr.robot3 and math for calculations
 '''
 
 
@@ -24,10 +24,10 @@ set_cam(r.camera)
 #Coefficients stored as constants to allow measurement of movement in helpful units
 #These may not be exactly right, so feel free to change them
 #The move constant is an arbitrary value, but the turn constant should allow turns to be measured in degrees
-MOVE_CONST = 0.2
-TURN_CONST = 0.0035
+MOVE_CONST = 0.924
+TURN_CONST = 0.018
 
-def drive(distance):
+def drive(distance, rest=0.1):
     '''
     This function moves the robot forward some distance by
     letting the robot move for a time equal to the inputted distance * MOVE_CONST.
@@ -35,17 +35,17 @@ def drive(distance):
     '''
 
     if distance >= 0:
-        motors[0].power = 1
-        motors[1].power = 1
+        motors[0].power = 0.15
+        motors[1].power = 0.15
     else:
-        motors[0].power = -1
-        motors[1].power = -1
+        motors[0].power = -0.15
+        motors[1].power = -0.15
         
     r.sleep(abs(distance)*MOVE_CONST)
     
     motors[0].power = 0
     motors[1].power = 0
-    r.sleep(0.1) 
+    r.sleep(rest) 
     #Pauses the robot at the end of the action to minimise randomness in ending position 
 
 def turn(angle, unit = 'd'):
@@ -57,16 +57,16 @@ def turn(angle, unit = 'd'):
     Unit defaults to degrees, but if it is given as r, 
     it will treat it as a radians value.
     '''
-    if unit == 'r':
+    if unit == 'r': #if the angle is in radians, convert to degrees
         angle = degrees(angle)
-    if angle < 0:
+    if angle < 0: #Turn the other way
         angle = abs(angle)
-        motors[0].power = 0
-        motors[1].power = 0.5
+        motors[0].power = -0.075 #For some reason backwards is
+        motors[1].power = 0.15   #about double the power of forwards
         r.sleep(angle*TURN_CONST)
     else:
-        motors[1].power = 0
-        motors[0].power = 0.5
+        motors[1].power = -0.075
+        motors[0].power = 0.15
         r.sleep(angle*TURN_CONST)
     motors[0].power = 0
     motors[1].power = 0
@@ -118,14 +118,48 @@ def arm_move(new_pos):
     servos[0].position = new_pos
     r.sleep(0.1)
 
-def align(marker, accuracy = 0.09):
-    '''Aligns the robot wth the marker of inputted ID, 
+def align(marker, accuracy = 0.02):
+    '''
+    Aligns the robot wth the marker of inputted ID, 
     to the accuracy of the inputted angle (in radians).
-    If no accuracy is given, it defaults to 0.09 (~5 degrees)'''
+    If no accuracy is given, it defaults to 0.02 (~1 degrees)
+    '''
 
     while abs(get_angle(marker)) > accuracy:
-        if get_angle(marker) == 10:
-            turn(90)
+        print(get_angle(marker)) #For testing
+        if get_angle(marker) == 10: #If not seen, turn 30 degrees
+            turn(30)
         else:
-            turn(get_angle(marker), 'r')
+            turn((0.9*(get_angle(marker))), 'r') #Since get_angle returns a radians value
+    r.sleep(0.1)
+
+def drive_towards(marker, dist_from = 10):
+    '''
+    Drives the robot towards a marker and stops
+    dist_from away. dist_from defaults to 10.
+    '''
+    stop = False
+
+    while not stop:
+        print(get_angle(marker))
+        if get_angle(marker) > 0.02: #If misaligned
+            print('align')
+            align(marker)
+        
+        dist_remain = get_distance(marker)
+        dis = (dist_remain - dist_from)/500
+        print(f'dis = {dis}')
+        drive(dis)
+        
+        if (dist_remain - (500*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
+            stop = True
+
+def search_any():
+    '''Return a list of markers. If none are seen, turns until at least 1 is spotted'''
+    markers = get_markers()
+
+    while not markers:
+        turn(20)
+        markers = get_markers()
     
+    return markers
