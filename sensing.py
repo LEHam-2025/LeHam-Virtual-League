@@ -5,6 +5,7 @@ before anything else is used.
 Imports from math and is imported by the movement library.
 This is the first file in the chain.
 '''
+
 from math import inf
 
 camera = None
@@ -15,7 +16,7 @@ means = [ #The categories of marker ids. In the form ['first id', 'last id', Gro
 [140, 160, 3, 'z2'], #zone 2 pallets
 [160, 180, 4, 'z3'], #zone 3 pallets
 [195, 199, 5, 'high rise']] #high rises (199 for centre)
-    
+
 def id_type(in_id, type_out = 0):
     '''Returns the marker category. type_out defualts to 0, 
     returning the number for easier handling, but can be set to 1
@@ -27,7 +28,7 @@ def id_type(in_id, type_out = 0):
                 return type[2]
             else:
                 return type[3]
-    
+
 def set_cam(cam):
     '''Sets the camera 
     for the functions in this file. 
@@ -59,6 +60,15 @@ def get_distance(markerID):
             return marker.position.distance
 
     return inf
+
+def get_facing_angle():
+    wall_markers = [mark for mark in get_markers() if id_type(mark.id) == 0]
+    
+    if len(wall_markers) >= 2:
+        face_angle = compare(wall_markers[0], wall_markers[1])
+
+def compare(mark1, mark2):
+    pass
 
 def get_markers():
     '''

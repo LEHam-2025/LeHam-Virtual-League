@@ -130,7 +130,7 @@ def align(marker, accuracy = 0.02):
         if get_angle(marker) == 10: #If not seen, turn 30 degrees
             turn(30)
         else:
-            turn((0.9*(get_angle(marker))), 'r') #Since get_angle returns a radians value
+            turn((0.7*(get_angle(marker))), 'r') #Since get_angle returns a radians value
     r.sleep(0.1)
 
 def drive_towards(marker, dist_from = 10):
