@@ -159,13 +159,19 @@ def align(marker_ID, accuracy = 0.02, type = 'y'):
     to the accuracy of the inputted angle (in radians).
     If no accuracy is given, it defaults to 0.02 (~1 degrees)
     '''
+    turned = 0
 
     while abs(get_angle(marker_ID, type)) > accuracy:
         if get_angle(marker_ID) == 10: #If not seen, turn 30 degrees
             turn(15)
+            turned += 15
+
+            if turned >= 360:
+                return False
         else:
             turn((0.4*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
     r.sleep(0.1)
+    return True
 
 def drive_towards(marker_ID, dist_from = 3):
     '''
@@ -196,10 +202,15 @@ def go_to_pick(marker_ID, s_height = -1, e_height = 1, a_height = 0):
     as start_height and end_height respectively. a_height is the approach height'''
 
     arm_move(a_height)
-    drive_towards(marker_ID, 4)
+    drive_towards(marker_ID, 2)
     pickup(start_height=s_height, end_height = e_height)
 
-def search_any(type = 'Any', wanted_ID = None):
+def escape():
+    pass
+
+
+
+def search_any(type = 'Any', wanted_ID = None, floor = False):
     '''Return a list of markers. 
     If none are seen, turns until at least one is spotted. 
     If a full 360 turn has been completed, move somewhere else.
@@ -209,7 +220,7 @@ def search_any(type = 'Any', wanted_ID = None):
     if wanted_ID != None:
         align(wanted_ID, 0.05)
     
-    markers = get_markers(type, floor=False)
+    markers = get_markers(type, floor=floor)
 
     turned = 0
     while not markers:

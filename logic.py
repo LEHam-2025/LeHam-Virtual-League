@@ -3,6 +3,8 @@ This is currently empty,
 but will be where the high level logic takes place.
 Imports from the movement library and is imported 
 by the robot.py file.
+
+Must run init_Zone() before anything else to automatically set the zone
 '''
 
 from movement import *
@@ -10,7 +12,7 @@ from movement import *
 
 
 def init_Zone():
-    '''Initialises myZone by seeing what high rise is in front of the robot'''
+    '''Automatically initialises myZone by seeing what high rise is in front of the robot'''
     
     global myZone
 
@@ -23,10 +25,10 @@ def init_Zone():
     else:
         myZone = 'z3'
 
-def closest(type = 'Any', dest = True, pallet = False):
+def closest(type = 'Any', dest = True, pallet = False, floor = True):
     '''Returns the closest marker. If type is given,
     only considers a specific category of markers. If pallet is given, only considers pallets'''
-    marks = search_any(type)
+    marks = search_any(type, floor = floor)
 
     try:
         if dest:
@@ -56,7 +58,7 @@ def deposit(dest: (str | int) = 'cen'):
         id = closest('mid rise').id
         maximal = max_height(tower(id))
         tower_height = [((maximal// 100)), 0]
-        drive_towards(id, 1)
+        drive_towards(id, 3)
         
     elif dest == 'cen':
         drive_towards(199, 1)
@@ -70,11 +72,11 @@ def deposit(dest: (str | int) = 'cen'):
 
 def pallet_place(dest = 'mid', a_height = -1):
     '''
-    The start_game function. 
+    The complete pallet placing function. 
     Deposits the closest pallet 
     on the closest mid high rise.
     '''
-    target = closest(myZone)
+    target = closest(myZone, floor = True)
     if target != None:
         go_to_pick(target.id, a_height=a_height)
         r.sleep(1)
