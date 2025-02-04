@@ -23,13 +23,44 @@ set_cam(r.camera)
 
 #Coefficients stored as constants to allow measurement of movement in helpful units
 #These may not be exactly right, so feel free to change them
-#The move constant is an arbitrary value, but the turn constant should allow turns to be measured in degrees
-MOVE_CONST = 1
-TURN_CONST = 0.015
+MOVE_CONST = 1     #The move constant makes the robot move roughly 1/255 mm per drive unit
+TURN_CONST = 0.015 #The turn constant allows the robot to turn in degrees
 
 
 
 
+def valid_place(marker):
+    mark_tower = tower(marker.id)
+    if max_height(mark_tower) < 200:
+        return True
+    elif id_type(mark_tower[0], 1) != myZone:
+        return True
+    else:
+        return False
+
+def clean(towerIDs):
+    towerIDs.sort(key=height, reverse= True)
+    ids = []
+    final = []
+
+    for mark in towerIDs:
+        if mark.id not in ids:
+            ids.append(mark.id)
+            final.append(mark)
+    
+    return final
+
+def tower(marker_ID):
+    '''Returns all the markers in a stack with the given one, arranged from highest to lowest'''
+    marks = search_any(wanted_ID = marker_ID) #Get all markers
+    try:
+        wanted_mark = [mark for mark in marks if mark.id == marker_ID][0] #The marker being considered
+        parts = [mark for mark in marks if stacked(wanted_mark, mark)] + [wanted_mark]
+        parts = clean(parts)
+        return parts
+    
+    except IndexError:
+        return
 
 def drive(distance, rest=0.1):
     '''
@@ -88,7 +119,7 @@ def pickup(start_height = None, end_height = None):
         servos[0].position = start_height #servos[0] is the arm servo
 
     power[OUT_H0].is_enabled = True #power[OUT_H0] is the power to the vacuum
-
+    r.sleep(0.5)
     if end_height != None:
         servos[0].position = end_height
 
@@ -130,14 +161,13 @@ def align(marker_ID, accuracy = 0.02, type = 'y'):
     '''
 
     while abs(get_angle(marker_ID, type)) > accuracy:
-        #print(get_angle(marker, type)) #For testing
         if get_angle(marker_ID) == 10: #If not seen, turn 30 degrees
             turn(15)
         else:
             turn((0.4*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
     r.sleep(0.1)
 
-def drive_towards(marker_ID, dist_from = 5):
+def drive_towards(marker_ID, dist_from = 3):
     '''
     Drives the robot towards a marker and stops
     dist_from away. dist_from defaults to 5.
@@ -160,20 +190,34 @@ def drive_towards(marker_ID, dist_from = 5):
         if (dist_remain - (255*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
             stop = True
 
-def go_to_pick(marker_ID, s_height = -1, e_height = 1):
+def go_to_pick(marker_ID, s_height = -1, e_height = 1, a_height = 0):
     '''Moves the robot to the marker and picks it up. 
     s_height and e_height are passed to the pickup function
-    as start_height and end_height respectively'''
-    arm_move(-1)
-    drive_towards(marker_ID)
+    as start_height and end_height respectively. a_height is the approach height'''
+
+    arm_move(a_height)
+    drive_towards(marker_ID, 4)
     pickup(start_height=s_height, end_height = e_height)
 
-def search_any(type = 'Any'):
-    '''Return a list of markers. If none are seen, turns until at least 1 is spotted'''
-    markers = get_markers(type)
+def search_any(type = 'Any', wanted_ID = None):
+    '''Return a list of markers. 
+    If none are seen, turns until at least one is spotted. 
+    If a full 360 turn has been completed, move somewhere else.
+    If wanted_ID is given, looks for that specific ID.
+    If type is given, only considers markers of that type'''
 
+    if wanted_ID != None:
+        align(wanted_ID, 0.05)
+    
+    markers = get_markers(type, floor=False)
+
+    turned = 0
     while not markers:
         turn(20)
+        turned += 20
         markers = get_markers(type)
+
+        if turned == 360:
+            return []
     
     return markers

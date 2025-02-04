@@ -10,6 +10,8 @@ from math import inf
 from math import sin
 
 camera = None
+myZone = None
+
 means = [ #The categories of marker ids. In the form ['first id', 'last id', Group No, Group Name]
 [0, 28, 0, 'bound'], #Boundary
 [100, 120, 1, 'z0'], #zone 0 pallets
@@ -24,29 +26,21 @@ means = [ #The categories of marker ids. In the form ['first id', 'last id', Gro
 def stacked(mark1, mark2):
     '''Returns a boolean value denoting whether two markers are stacked or not'''
 
-    hoz_tolerance = 0.009
-    vert_tolerance = 100
+    hoz_tolerance = 0.18
+    vert_tolerance = 50
+    dist_tolerance = 200
 
     angles = (mark1.position.horizontal_angle, mark2.position.horizontal_angle)
+    distances = (mark1.position.distance, mark2.position.distance)
     heights = (height(mark1), height(mark2))
 
-    if ((max(angles) - min(angles)) < hoz_tolerance) and ((max(heights) - min(heights)) > vert_tolerance):
+    if ((max(angles) - min(angles)) < hoz_tolerance) and ((max(heights) - min(heights)) > vert_tolerance) and (max(distances) - min(distances) < dist_tolerance):
         return True
     
     return False
 
 def max_height(stack):
     return height(stack[0])
-
-def tower(marker_ID):
-    '''Returns all the markers in a stack with the given one, arranged from highest to lowest'''
-    marks = get_markers(floor = False) #Get all markers
-    wanted_mark = [mark for mark in marks if mark.id == marker_ID][0] #The marker being considered
-    parts = [mark for mark in marks if stacked(wanted_mark, mark)] + [wanted_mark]
-    print(parts)
-    parts.sort(key=height, reverse= True)
-
-    return parts
 
 def id_type(in_id, type_out = 0):
     '''Returns the marker category. type_out defualts to 0, 
