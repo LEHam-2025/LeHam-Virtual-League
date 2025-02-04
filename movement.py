@@ -25,7 +25,11 @@ set_cam(r.camera)
 #These may not be exactly right, so feel free to change them
 #The move constant is an arbitrary value, but the turn constant should allow turns to be measured in degrees
 MOVE_CONST = 1
-TURN_CONST = 0.0023
+TURN_CONST = 0.015
+
+
+
+
 
 def drive(distance, rest=0.1):
     '''
@@ -61,12 +65,12 @@ def turn(angle, unit = 'd'):
         angle = degrees(angle)
     if angle < 0: #Turn the other way
         angle = abs(angle)
-        motors[0].power = -1 #For some reason backwards is
-        motors[1].power = 1   #about double the power of forwards
+        motors[0].power = -0.2 #For some reason backwards is
+        motors[1].power = 0.2   #about double the power of forwards
         r.sleep(angle*TURN_CONST)
     else:
-        motors[1].power = -1
-        motors[0].power = 1
+        motors[1].power = -0.2
+        motors[0].power = 0.2
         r.sleep(angle*TURN_CONST)
     motors[0].power = 0
     motors[1].power = 0
@@ -90,21 +94,21 @@ def pickup(start_height = None, end_height = None):
 
     r.sleep(0.2)
      
-def drop(start_height = None, end_height = None):
+def drop(start_height = None):
     '''
     This function turns off the robot's vacuum arm. 
     If start_height and end_height are specified, the arm 
     will move to start_height before deactivating and to end_height after deactivating
     '''
 
-    r.sleep(0.1)
+    
     if start_height != None:
         servos[0].position = start_height
-
+    r.sleep(0.2)
+    
     power[OUT_H0].is_enabled = False
 
-    if end_height != None:
-        servos[0].position = end_height
+    servos[0].position = 1
 
     r.sleep(0.2)
 
@@ -118,48 +122,58 @@ def arm_move(new_pos):
     servos[0].position = new_pos
     r.sleep(0.1)
 
-def align(marker, accuracy = 0.02, type = 'y'):
+def align(marker_ID, accuracy = 0.02, type = 'y'):
     '''
     Aligns the robot wth the marker of inputted ID, 
     to the accuracy of the inputted angle (in radians).
     If no accuracy is given, it defaults to 0.02 (~1 degrees)
     '''
 
-    while abs(get_angle(marker, type)) > accuracy:
-        print(get_angle(marker, type)) #For testing
-        if get_angle(marker) == 10: #If not seen, turn 30 degrees
+    while abs(get_angle(marker_ID, type)) > accuracy:
+        #print(get_angle(marker, type)) #For testing
+        if get_angle(marker_ID) == 10: #If not seen, turn 30 degrees
             turn(15)
         else:
-            turn((0.4*(get_angle(marker, type))), 'r') #Since get_angle returns a radians value
+            turn((0.4*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
     r.sleep(0.1)
 
-def drive_towards(marker, dist_from = 10):
+def drive_towards(marker_ID, dist_from = 5):
     '''
     Drives the robot towards a marker and stops
-    dist_from away. dist_from defaults to 10.
+    dist_from away. dist_from defaults to 5.
     '''
     stop = False
 
+    align(marker_ID, 0.01, 'h')
+    dist_remain = get_distance(marker_ID)
+    dis = (dist_remain - dist_from)/510
+    drive(dis)
+    
     while not stop:
-        print(get_angle(marker))
-        if get_angle(marker) > 0.02: #If misaligned
-            print('align')
-            align(marker, 0.005, 'h')
+        if get_angle(marker_ID) > 0.005: #If misaligned
+            align(marker_ID, 0.005, 'h')
         
-        dist_remain = get_distance(marker)
-        dis = (dist_remain - dist_from)/250
-        print(f'dis = {dis}')
+        dist_remain = get_distance(marker_ID)
+        dis = (dist_remain - dist_from)/255
         drive(dis)
         
-        if (dist_remain - (250*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
+        if (dist_remain - (255*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
             stop = True
 
-def search_any():
+def go_to_pick(marker_ID, s_height = -1, e_height = 1):
+    '''Moves the robot to the marker and picks it up. 
+    s_height and e_height are passed to the pickup function
+    as start_height and end_height respectively'''
+    arm_move(-1)
+    drive_towards(marker_ID)
+    pickup(start_height=s_height, end_height = e_height)
+
+def search_any(type = 'Any'):
     '''Return a list of markers. If none are seen, turns until at least 1 is spotted'''
-    markers = get_markers()
+    markers = get_markers(type)
 
     while not markers:
         turn(20)
-        markers = get_markers()
+        markers = get_markers(type)
     
     return markers

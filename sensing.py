@@ -7,6 +7,7 @@ This is the first file in the chain.
 '''
 
 from math import inf
+from math import sin
 
 camera = None
 means = [ #The categories of marker ids. In the form ['first id', 'last id', Group No, Group Name]
@@ -15,7 +16,37 @@ means = [ #The categories of marker ids. In the form ['first id', 'last id', Gro
 [120, 140, 2, 'z1'], #zone 1 pallets
 [140, 160, 3, 'z2'], #zone 2 pallets
 [160, 180, 4, 'z3'], #zone 3 pallets
-[195, 199, 5, 'high rise']] #high rises (199 for centre)
+[195, 199, 5, 'mid rise'], #high rises
+[199, 200, 6, 'high rise']] #centre high rise
+
+
+
+def stacked(mark1, mark2):
+    '''Returns a boolean value denoting whether two markers are stacked or not'''
+
+    hoz_tolerance = 0.009
+    vert_tolerance = 100
+
+    angles = (mark1.position.horizontal_angle, mark2.position.horizontal_angle)
+    heights = (height(mark1), height(mark2))
+
+    if ((max(angles) - min(angles)) < hoz_tolerance) and ((max(heights) - min(heights)) > vert_tolerance):
+        return True
+    
+    return False
+
+def max_height(stack):
+    return height(stack[0])
+
+def tower(marker_ID):
+    '''Returns all the markers in a stack with the given one, arranged from highest to lowest'''
+    marks = get_markers(floor = False) #Get all markers
+    wanted_mark = [mark for mark in marks if mark.id == marker_ID][0] #The marker being considered
+    parts = [mark for mark in marks if stacked(wanted_mark, mark)] + [wanted_mark]
+    print(parts)
+    parts.sort(key=height, reverse= True)
+
+    return parts
 
 def id_type(in_id, type_out = 0):
     '''Returns the marker category. type_out defualts to 0, 
@@ -64,18 +95,37 @@ def get_distance(markerID):
 
     return inf
 
-def get_facing_angle():
-    wall_markers = [mark for mark in get_markers() if id_type(mark.id) == 0]
+def dist_sort(marker):
+    '''For the sort function. 
+    Returns the distance to the marker'''
+
+    return marker.position.distance
+
+def is_type(marker, type = 'Any'):
+    if type == 'Any':
+        return True
     
-    if len(wall_markers) >= 2:
-        face_angle = compare(wall_markers[0], wall_markers[1])
+    if id_type(marker.id, 1) == type:
+        return True
+    else:
+        return False
 
-def compare(mark1, mark2):
-    pass
+def height(marker):
+    '''Returns the vertical height of a marker'''
+    return (sin(marker.position.vertical_angle)*marker.position.distance)
 
-def get_markers():
+def get_markers(type = 'Any', floor = True):
     '''
     Returns the list of markers seen.
-    This is a wrapper for the camera.see method
+    If type is given, only returns markers of a specific category
+    floor defaults to True, only returning grounded markers
     '''
-    return camera.see()
+    markers = camera.see()
+
+    if type != 'Any':
+        markers = [marker for marker in markers if is_type(marker, type)]
+    if floor == True:
+        markers = [marker for marker in markers if height(marker) < 30]
+    
+    markers.sort(key=dist_sort)
+    return markers
