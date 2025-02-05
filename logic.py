@@ -9,8 +9,6 @@ Must run init_Zone() before anything else to automatically set the zone
 
 from movement import *
 
-
-
 def init_Zone():
     '''Automatically initialises myZone by seeing what high rise is in front of the robot'''
     
@@ -29,14 +27,12 @@ def closest(type = 'Any', dest = True, pallet = False, floor = True):
     '''Returns the closest marker. If type is given,
     only considers a specific category of markers. If pallet is given, only considers pallets'''
     marks = search_any(type, floor = floor)
-
     try:
         if dest:
             marks = [mark for mark in marks if valid_place(mark)]
 
         if pallet:
             marks = [mark for mark in marks if (id_type(mark.id) in range(1, 5))]
-        
         return marks[0]
     except:
         return None
@@ -55,13 +51,13 @@ def deposit(dest: (str | int) = 'cen'):
         tower_height = [((max_height(tower(dest)) // 100)), 0]
 
     elif dest == 'mid':
-        id = closest('mid rise').id
+        id = closest('mid rise', floor = False).id
         maximal = max_height(tower(id))
         tower_height = [((maximal// 100)), 0]
-        drive_towards(id, 3)
+        drive_towards(id, 1, 0.03)
         
     elif dest == 'cen':
-        drive_towards(199, 1)
+        drive_towards(199, 1, 0.03)
         tower_height = [1, -1]
     else:
         print('not an option')
@@ -70,7 +66,7 @@ def deposit(dest: (str | int) = 'cen'):
     r.sleep(0.5)
     drop()
 
-def pallet_place(dest = 'mid', a_height = -1):
+def pallet_place(dest = 'mid', a_height = 0):
     '''
     The complete pallet placing function. 
     Deposits the closest pallet 

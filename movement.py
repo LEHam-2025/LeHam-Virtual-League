@@ -3,23 +3,15 @@ This is being worked on.
 Imports from the sensing library 
 and is imported by the logic library.
 
-This library also imports from sr.robot3 and math for calculations
+This library also imports from math for calculations
 '''
 
 
 
-from sr.robot3 import *
+
 from sensing import *
-from math import degrees
+from math import degrees, inf
 
-r = Robot()
-
-#The respective boards of the robot
-
-motors = r.motor_board.motors #There is only one motor board, with two motors
-servos = r.servo_board.servos #There is only one servo, which controls the arm
-power = r.power_board.outputs #There is only one non-standard connection, in position H0, which controls the vacuum
-set_cam(r.camera)
 
 #Coefficients stored as constants to allow measurement of movement in helpful units
 #These may not be exactly right, so feel free to change them
@@ -70,20 +62,20 @@ def drive(distance, rest=0.1):
     '''
 
     if distance >= 0:
-        motors[0].power = 0.2
-        motors[1].power = 0.2
+        MOTORS[0].power = 0.2
+        MOTORS[1].power = 0.2
     else:
-        motors[0].power = -0.2
-        motors[1].power = -0.2
+        MOTORS[0].power = -0.2
+        MOTORS[1].power = -0.2
         
     r.sleep(abs(distance)*MOVE_CONST)
     
-    motors[0].power = 0
-    motors[1].power = 0
+    MOTORS[0].power = 0
+    MOTORS[1].power = 0
     r.sleep(rest) 
     #Pauses the robot at the end of the action to minimise randomness in ending position 
 
-def turn(angle, unit = 'd'):
+def turn(angle, unit = 'd', speed = 0.2):
     '''
     This function turns the robot clockwise by some angle by
     giving the wheels opposite powers and letting the robot move
@@ -92,19 +84,22 @@ def turn(angle, unit = 'd'):
     Unit defaults to degrees, but if it is given as r, 
     it will treat it as a radians value.
     '''
+
+    alt_constant = TURN_CONST*(0.2/speed)
     if unit == 'r': #if the angle is in radians, convert to degrees
         angle = degrees(angle)
     if angle < 0: #Turn the other way
         angle = abs(angle)
-        motors[0].power = -0.2 #For some reason backwards is
-        motors[1].power = 0.2   #about double the power of forwards
+        MOTORS[0].power = -speed 
+        MOTORS[1].power = speed   
         r.sleep(angle*TURN_CONST)
     else:
-        motors[1].power = -0.2
-        motors[0].power = 0.2
-        r.sleep(angle*TURN_CONST)
-    motors[0].power = 0
-    motors[1].power = 0
+        MOTORS[1].power = -speed
+        MOTORS[0].power = speed
+        r.sleep(angle*alt_constant)
+    MOTORS[0].power = 0
+    MOTORS[1].power = 0
+    
     r.sleep(0.1)
 
 def pickup(start_height = None, end_height = None):
@@ -116,14 +111,15 @@ def pickup(start_height = None, end_height = None):
 
     r.sleep(0.1)
     if start_height != None:
-        servos[0].position = start_height #servos[0] is the arm servo
+        SERVOS[0].position = start_height #SERVOS[0] is the arm servo
 
-    power[OUT_H0].is_enabled = True #power[OUT_H0] is the power to the vacuum
+    POWER[OUT_H0].is_enabled = True #POWER[OUT_H0] is the power to the vacuum
+    
     r.sleep(0.5)
     if end_height != None:
-        servos[0].position = end_height
+        SERVOS[0].position = end_height
 
-    r.sleep(0.2)
+    r.sleep(0.1)
      
 def drop(start_height = None):
     '''
@@ -134,14 +130,11 @@ def drop(start_height = None):
 
     
     if start_height != None:
-        servos[0].position = start_height
-    r.sleep(0.2)
+        SERVOS[0].position = start_height
     
-    power[OUT_H0].is_enabled = False
+    POWER[OUT_H0].is_enabled = False
 
-    servos[0].position = 1
-
-    r.sleep(0.2)
+    SERVOS[0].position = 1
 
 def arm_move(new_pos):
     '''
@@ -149,31 +142,33 @@ def arm_move(new_pos):
     It is pretty much just a wrapper and it only accepts float values between -1 and 1
     '''
     
-    r.sleep(0.1)
-    servos[0].position = new_pos
+    SERVOS[0].position = new_pos
     r.sleep(0.1)
 
-def align(marker_ID, accuracy = 0.02, type = 'y'):
+def align(marker_ID, accuracy = 0.02, type = 'h'):
     '''
     Aligns the robot wth the marker of inputted ID, 
     to the accuracy of the inputted angle (in radians).
     If no accuracy is given, it defaults to 0.02 (~1 degrees)
     '''
     turned = 0
+    angle = get_angle(marker_ID, type=type)
 
-    while abs(get_angle(marker_ID, type)) > accuracy:
-        if get_angle(marker_ID) == 10: #If not seen, turn 30 degrees
-            turn(15)
+    while abs(angle) > accuracy:
+        if angle == 10: #If not seen, turn 15 degrees
+            turn(15, speed=1)
             turned += 15
 
             if turned >= 360:
                 return False
         else:
-            turn((0.4*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
-    r.sleep(0.1)
+            turn((0.7*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
+        
+        angle = get_angle(marker_ID, type=type)
+    
     return True
 
-def drive_towards(marker_ID, dist_from = 3):
+def drive_towards(marker_ID, dist_from = 3, precision = 0.01):
     '''
     Drives the robot towards a marker and stops
     dist_from away. dist_from defaults to 5.
@@ -182,15 +177,15 @@ def drive_towards(marker_ID, dist_from = 3):
 
     align(marker_ID, 0.01, 'h')
     dist_remain = get_distance(marker_ID)
-    dis = (dist_remain - dist_from)/510
+    dis = ((dist_remain - dist_from)/255) - 2
     drive(dis)
     
     while not stop:
-        if get_angle(marker_ID) > 0.005: #If misaligned
-            align(marker_ID, 0.005, 'h')
+        if get_angle(marker_ID) > precision: #If misaligned
+            align(marker_ID, precision, 'h')
         
         dist_remain = get_distance(marker_ID)
-        dis = (dist_remain - dist_from)/255
+        dis = ((dist_remain - dist_from)/255)
         drive(dis)
         
         if (dist_remain - (255*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
@@ -205,10 +200,9 @@ def go_to_pick(marker_ID, s_height = -1, e_height = 1, a_height = 0):
     drive_towards(marker_ID, 2)
     pickup(start_height=s_height, end_height = e_height)
 
-def escape():
+def escape(): #Not done yet
+    allowed_directions = free_space()
     pass
-
-
 
 def search_any(type = 'Any', wanted_ID = None, floor = False):
     '''Return a list of markers. 
@@ -224,8 +218,8 @@ def search_any(type = 'Any', wanted_ID = None, floor = False):
 
     turned = 0
     while not markers:
-        turn(20)
-        turned += 20
+        turn(15)
+        turned += 15
         markers = get_markers(type)
 
         if turned == 360:
