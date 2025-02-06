@@ -161,16 +161,24 @@ def get_angle(markerID, type = 'y'):
     '''Returns the yaw angle of the
     first marker spotted that matches the inputted ID.
     Returns 10 if the marker is not seen'''
-    markers = CAMERA.see()
+    result = 0
+    
+    try: #This is actually awful practice, but whatever
+        for _ in range(3):
+            markers = CAMERA.see()
 
-    for marker in markers:
-        if marker.id == markerID:
-            if type == 'y':
-                return marker.orientation.yaw
-            else:
-                return marker.position.horizontal_angle
-
-    return 10
+            for marker in markers:
+                if marker.id == markerID:
+                    if type == 'y':
+                        result +=  marker.orientation.yaw
+                    else:
+                        result += marker.position.horizontal_angle
+                    break
+        if result == 0:
+            return 10
+        return (result/3)
+    except: #And it gets worse
+        return 10
 
 def get_distance(markerID):
     '''Returns the distance in mm to the

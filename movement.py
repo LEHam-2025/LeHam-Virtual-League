@@ -10,14 +10,13 @@ This library also imports from math for calculations
 
 
 from sensing import *
-from math import degrees, inf
+from math import degrees, cos
 
 
 #Coefficients stored as constants to allow measurement of movement in helpful units
 #These may not be exactly right, so feel free to change them
 MOVE_CONST = 1     #The move constant makes the robot move roughly 1/255 mm per drive unit
 TURN_CONST = 0.015 #The turn constant allows the robot to turn in degrees
-
 
 
 
@@ -153,8 +152,8 @@ def align(marker_ID, accuracy = 0.02, type = 'h'):
     '''
     turned = 0
     angle = get_angle(marker_ID, type=type)
-
     while abs(angle) > accuracy:
+        r.sleep(0.01)
         if angle == 10: #If not seen, turn 15 degrees
             turn(15, speed=1)
             turned += 15
@@ -162,7 +161,7 @@ def align(marker_ID, accuracy = 0.02, type = 'h'):
             if turned >= 360:
                 return False
         else:
-            turn((0.7*(get_angle(marker_ID, type))), 'r') #Since get_angle returns a radians value
+            turn((0.4*(angle)), 'r', 0.1) #Since get_angle returns a radians value
         
         angle = get_angle(marker_ID, type=type)
     
@@ -173,23 +172,31 @@ def drive_towards(marker_ID, dist_from = 3, precision = 0.01):
     Drives the robot towards a marker and stops
     dist_from away. dist_from defaults to 5.
     '''
-    stop = False
-
-    align(marker_ID, 0.01, 'h')
-    dist_remain = get_distance(marker_ID)
-    dis = ((dist_remain - dist_from)/255) - 2
-    drive(dis)
-    
-    while not stop:
-        if get_angle(marker_ID) > precision: #If misaligned
-            align(marker_ID, precision, 'h')
-        
+    try:
+        stop = False
+        align(marker_ID, 0.02, 'h')
+        r.sleep(0.1)
         dist_remain = get_distance(marker_ID)
-        dis = ((dist_remain - dist_from)/255)
+
+        dis = ((dist_remain - dist_from)/255) - 3
         drive(dis)
         
-        if (dist_remain - (255*dis)) <= (dist_from + 3): #If too close, the camera does not pick up the marker
-            stop = True
+        while not stop:
+            r.sleep(0.1)
+            if get_angle(marker_ID) > (0.5*precision): #If misaligned
+                align(marker_ID, precision, 'h')
+            
+            dist_remain = get_distance(marker_ID)
+
+            dis = ((dist_remain - dist_from)/255)
+            drive(dis)
+            
+            if (dist_remain - (255*dis)) <= (dist_from + 1): #If too close, the camera does not pick up the marker
+                stop = True
+
+    except:
+        escape()
+        drive_towards(marker_ID, dist_from, precision)
 
 def go_to_pick(marker_ID, s_height = -1, e_height = 1, a_height = 0):
     '''Moves the robot to the marker and picks it up. 
@@ -197,12 +204,23 @@ def go_to_pick(marker_ID, s_height = -1, e_height = 1, a_height = 0):
     as start_height and end_height respectively. a_height is the approach height'''
 
     arm_move(a_height)
-    drive_towards(marker_ID, 2)
+    drive_towards(marker_ID, 3, precision=0.005)
     pickup(start_height=s_height, end_height = e_height)
 
-def escape(): #Not done yet
-    allowed_directions = free_space()
-    pass
+def escape():
+    allowed_directions = free_space(1000)
+    if 'front' in allowed_directions:
+        drive(2)    
+    elif 'back' in allowed_directions:
+        drive(-2)
+    elif 'right' in allowed_directions:
+        turn(90)
+        drive(2)
+    elif 'left' in allowed_directions:
+        turn(-90)
+        drive(2)
+    else:
+        print('trapped')
 
 def search_any(type = 'Any', wanted_ID = None, floor = False):
     '''Return a list of markers. 

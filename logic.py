@@ -9,6 +9,14 @@ Must run init_Zone() before anything else to automatically set the zone
 
 from movement import *
 
+
+def game():
+    init_Zone()
+    while True:
+        pallet_place()
+        pallet_place()
+        pallet_place('cen')
+
 def init_Zone():
     '''Automatically initialises myZone by seeing what high rise is in front of the robot'''
     
@@ -35,7 +43,8 @@ def closest(type = 'Any', dest = True, pallet = False, floor = True):
             marks = [mark for mark in marks if (id_type(mark.id) in range(1, 5))]
         return marks[0]
     except:
-        return None
+        escape()
+        return closest(type=type, dest=dest, pallet=pallet, floor=floor)
 
 def deposit(dest: (str | int) = 'cen'):
     '''
@@ -54,17 +63,19 @@ def deposit(dest: (str | int) = 'cen'):
         id = closest('mid rise', floor = False).id
         maximal = max_height(tower(id))
         tower_height = [((maximal// 100)), 0]
-        drive_towards(id, 1, 0.03)
+        drive_towards(id, 1, 0.02)
         
     elif dest == 'cen':
-        drive_towards(199, 1, 0.03)
+        drive_towards(199, 1, 0.01)
         tower_height = [1, -1]
     else:
         print('not an option')
+        return
     
     arm_move(max(tower_height))
-    r.sleep(0.5)
+    r.sleep(0.1)
     drop()
+    drive(-1)
 
 def pallet_place(dest = 'mid', a_height = 0):
     '''
@@ -75,7 +86,6 @@ def pallet_place(dest = 'mid', a_height = 0):
     target = closest(myZone, floor = True)
     if target != None:
         go_to_pick(target.id, a_height=a_height)
-        r.sleep(1)
         deposit(dest)
     else:
         print('Not seen')
